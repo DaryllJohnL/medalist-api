@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Medalist; // Ensure to include the Medalist model
 use Illuminate\Support\Facades\Storage;
-use League\Csv\Reader; // Ensure you have installed league/csv
+use League\Csv\Reader;
 
 class MedalistController extends Controller
 {
@@ -13,60 +12,30 @@ class MedalistController extends Controller
     public function upload(Request $request)
     {
         try {
+            // Validate that a file was uploaded and that it's a CSV or text file
             $request->validate(['file' => 'required|mimes:csv,txt']);
 
-            // Store the uploaded file
+            // Store the uploaded file in the 'medalists' directory within the storage
             $path = $request->file('file')->store('medalists');
 
-            // Process the CSV file
-            $csv = Reader::createFromPath(storage_path("app/{$path}"), 'r');
-            $csv->setHeaderOffset(0); // Set the CSV header offset
-
-            foreach ($csv as $row) {
-                Medalist::create([
-                    'name' => $row['name'],
-                    'medal_type' => $row['medal_type'],
-                    'gender' => $row['gender'],
-                    'country' => $row['country'],
-                    'country_code' => $row['country_code'],
-                    'nationality' => $row['nationality'],
-                    'medal_code' => $row['medal_code'],
-                    'medal_date' => $row['medal_date'],
-                ]);
-            }
-
-            return response()->json(['message' => 'File uploaded successfully.']);
+            // Log or return success message
+            return response()->json([
+                'message' => 'File uploaded and stored successfully.',
+                'file_path' => $path // Return the file path for your Python watchdog service to watch
+            ]);
         } catch (\Exception $e) {
+            // If there's an error, return it
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-
-
     // Get Event Aggregate Stats Endpoint
     public function getEventAggregateStats()
     {
-        $medalists = Medalist::all()->groupBy('event'); 
-
-        // Transform data into the required format
-        $data = [];
-        foreach ($medalists as $event => $medalistsGroup) {
-            $data[] = [
-                'discipline' => $event, 
-                'event' => $event,
-                'event_date' => '', 
-                'medalists' => $medalistsGroup->toArray(),
-            ];
-        }
-
+        // As there is no MySQL database anymore, you might not need this function
+        // However, you can still implement similar functionality on your MongoDB side using your Python service.
         return response()->json([
-            'data' => $data,
-            'paginate' => [
-                'current_page' => 1,
-                'total_pages' => 1,
-                'next_page' => null,
-                'previous_page' => null,
-            ],
+            'message' => 'This functionality is now handled by MongoDB and the Python service.'
         ]);
     }
 }
